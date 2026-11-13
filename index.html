@@ -1,0 +1,474 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prehistoric Park</title>
+
+<style>
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  background:#101810;
+  color:#f1f0df;
+  font-family:Arial,sans-serif;
+}
+
+header {
+  padding:22px 5%;
+  border-bottom:1px solid #344535;
+  display:flex;
+  justify-content:space-between;
+}
+
+header h2 { margin:0; letter-spacing:3px; }
+
+.hero {
+  padding:35px 5%;
+}
+
+.hero h1 {
+  font-size:clamp(40px,7vw,80px);
+  margin:10px 0;
+  letter-spacing:-4px;
+}
+
+.hero h1 span { color:#c5df79; }
+
+.hero p { color:#aab4a0; }
+
+#scene {
+  height:550px;
+  width:90%;
+  margin:20px auto;
+  border:1px solid #53664a;
+  background:linear-gradient(#89977b,#c0b992 65%,#475a3b 65%);
+  position:relative;
+  overflow:hidden;
+}
+
+#scene canvas {
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.controls {
+  text-align:center;
+  padding:15px;
+}
+
+button {
+  background:#c5df79;
+  color:#172018;
+  border:0;
+  padding:14px 22px;
+  margin:5px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover { background:white; }
+
+#info {
+  margin:25px auto;
+  padding:25px;
+  width:90%;
+  max-width:700px;
+  background:#1d2a1f;
+  border:1px solid #53664a;
+  display:none;
+}
+
+#info h2 { color:#c5df79; }
+
+#status {
+  color:#c5df79;
+  text-align:center;
+  padding:10px;
+}
+
+footer {
+  text-align:center;
+  padding:25px;
+  color:#788875;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>✳ PREHISTORIC PARK</h2>
+  <span>INTERACTIVE EXHIBIT</span>
+</header>
+
+<section class="hero">
+  <small>THE ANCIENT WORLD, REBUILT</small>
+  <h1>GIANTS <span>WALKED HERE.</span></h1>
+  <p>Explore prehistoric giants. Select a dinosaur to discover its history.</p>
+</section>
+
+<div id="status">Loading prehistoric specimens...</div>
+
+<div id="scene"></div>
+
+<div class="controls">
+  <button onclick="selectDino('brachio')">
+    BRACHIOSAURUS
+  </button>
+
+  <button onclick="selectDino('trex')">
+    TYRANNOSAURUS REX
+  </button>
+</div>
+
+<div id="info">
+  <h2 id="name"></h2>
+  <p id="description"></p>
+  <p id="period"></p>
+  <p id="diet"></p>
+  <p id="length"></p>
+</div>
+
+<footer>
+  PREHISTORIC PARK • EXPLORE THE LOST WORLD
+</footer>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+import { GLTFLoader }
+from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+
+import { OrbitControls }
+from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+// SCENE
+
+const container = document.getElementById('scene');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9ba887);
+scene.fog = new THREE.Fog(0x9ba887, 20, 65);
+
+const camera = new THREE.PerspectiveCamera(
+  45,
+  container.clientWidth / container.clientHeight,
+  0.1,
+  1000
+);
+
+camera.position.set(0, 6, 17);
+
+const renderer = new THREE.WebGLRenderer({
+  antialias:true
+});
+
+renderer.setSize(
+  container.clientWidth,
+  container.clientHeight
+);
+
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio, 2)
+);
+
+renderer.shadowMap.enabled = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+container.appendChild(renderer.domElement);
+
+// CAMERA CONTROLS
+
+const controls = new OrbitControls(
+  camera,
+  renderer.domElement
+);
+
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.target.set(0,2,0);
+controls.minDistance = 5;
+controls.maxDistance = 35;
+
+// LIGHTING
+
+scene.add(new THREE.HemisphereLight(
+  0xffffff,
+  0x435037,
+  2
+));
+
+const sunlight = new THREE.DirectionalLight(
+  0xffe5b5,
+  3
+);
+
+sunlight.position.set(-8,15,10);
+sunlight.castShadow = true;
+scene.add(sunlight);
+
+// GROUND
+
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(100,100),
+  new THREE.MeshStandardMaterial({
+    color:0x566c42,
+    roughness:1
+  })
+);
+
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// SPECIES DATA
+
+const species = {
+
+  brachio: {
+    name:"Brachiosaurus",
+
+    description:
+    "A gigantic long-necked sauropod. Brachiosaurus used its enormous neck to reach vegetation high above the ground. Its front legs were longer than its back legs.",
+
+    period:"Late Jurassic — approximately 154–150 million years ago",
+
+    diet:"Herbivore",
+
+    length:"Approximately 18–22 meters"
+  },
+
+  trex: {
+    name:"Tyrannosaurus rex",
+
+    description:
+    "One of the most famous predators ever discovered. T. rex had powerful jaws, enormous teeth, excellent senses and a massive skull.",
+
+    period:"Late Cretaceous — approximately 68–66 million years ago",
+
+    diet:"Carnivore",
+
+    length:"Up to approximately 12–13 meters"
+  }
+
+};
+
+// MODEL LOADER
+
+const loader = new GLTFLoader();
+
+const dinosaurs = {};
+
+function loadDinosaur(id, path, x, targetSize) {
+
+  loader.load(
+    path,
+
+    (gltf) => {
+
+      const model = gltf.scene;
+
+      // ENABLE MODEL SHADOWS
+
+      model.traverse((object) => {
+
+        if (object.isMesh) {
+          object.castShadow = true;
+          object.receiveShadow = true;
+          object.userData.species = id;
+        }
+
+      });
+
+      // AUTOMATIC MODEL SCALING
+
+      let box = new THREE.Box3().setFromObject(model);
+
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+
+      const maxDimension = Math.max(
+        size.x,
+        size.y,
+        size.z
+      );
+
+      const scale = targetSize / maxDimension;
+
+      model.scale.setScalar(scale);
+
+      // CENTER MODEL
+
+      box.setFromObject(model);
+
+      const scaledCenter = box.getCenter(
+        new THREE.Vector3()
+      );
+
+      model.position.x = x - scaledCenter.x;
+      model.position.y = -box.min.y;
+      model.position.z = -scaledCenter.z;
+
+      scene.add(model);
+
+      dinosaurs[id] = model;
+
+      document.getElementById('status').textContent =
+        'Specimen loaded: ' + species[id].name;
+
+      if (Object.keys(dinosaurs).length === 2) {
+        document.getElementById('status').textContent =
+          'BOTH SPECIMENS LOADED — EXHIBIT OPEN';
+      }
+
+    },
+
+    undefined,
+
+    (error) => {
+      console.error(error);
+
+      document.getElementById('status').textContent =
+        'Could not load ' + id + '. Check your models folder.';
+    }
+  );
+
+}
+
+// LOAD YOUR ACTUAL GLB FILES
+
+loadDinosaur(
+  'brachio',
+  './models/brachiosaurus.glb',
+  -4,
+  7
+);
+
+loadDinosaur(
+  'trex',
+  './models/trex.glb',
+  4,
+  4
+);
+
+// SELECT SPECIMEN
+
+window.selectDino = function(id) {
+
+  const data = species[id];
+
+  if (!dinosaurs[id]) {
+    document.getElementById('status').textContent =
+      'This specimen is still loading...';
+    return;
+  }
+
+  document.getElementById('info').style.display = 'block';
+
+  document.getElementById('name').textContent =
+    data.name;
+
+  document.getElementById('description').textContent =
+    data.description;
+
+  document.getElementById('period').textContent =
+    'PERIOD: ' + data.period;
+
+  document.getElementById('diet').textContent =
+    'DIET: ' + data.diet;
+
+  document.getElementById('length').textContent =
+    'LENGTH: ' + data.length;
+
+  // Focus camera on selected dinosaur
+
+  const box = new THREE.Box3().setFromObject(
+    dinosaurs[id]
+  );
+
+  const center = box.getCenter(new THREE.Vector3());
+
+  controls.target.copy(center);
+
+};
+
+// CLICK 3D DINOSAURS
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+renderer.domElement.addEventListener('click', (event) => {
+
+  const rect = renderer.domElement.getBoundingClientRect();
+
+  mouse.x =
+    ((event.clientX - rect.left) / rect.width) * 2 - 1;
+
+  mouse.y =
+    -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+
+  const objects = Object.values(dinosaurs);
+
+  const hits = raycaster.intersectObjects(objects, true);
+
+  if (hits.length > 0) {
+
+    const id = hits[0].object.userData.species;
+
+    if (id) {
+      selectDino(id);
+    }
+
+  }
+
+});
+
+// RESIZE
+
+window.addEventListener('resize', () => {
+
+  camera.aspect =
+    container.clientWidth / container.clientHeight;
+
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(
+    container.clientWidth,
+    container.clientHeight
+  );
+
+});
+
+// ANIMATION
+
+function animate() {
+
+  requestAnimationFrame(animate);
+
+  controls.update();
+
+  renderer.render(scene,camera);
+
+}
+
+animate();
+
+</script>
+
+</body>
+  </html>
+  
